@@ -91,10 +91,12 @@ def check_file(file1, file2):
     """Compares two files and returns the result of diff."""
     try:
         result = subprocess.run(
-            ["diff", "--strip-trailing-cr", file1, file2, "-b"], check=False)
+            ["diff", "--strip-trailing-cr", "-b", "-q", file1, file2],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            check=False)
     except FileNotFoundError:
-        print(f"\033[91mUnknown Error on \033[0m{
-              file1}, \033[91mPlease check your output file\033[0m")
+        print(f"\033[91mUnknown Error on \033[0m{file1}, \033[91mPlease check your output file\033[0m")
         return 1
     return result.returncode
 
@@ -109,8 +111,7 @@ def add_returncode(file, ret):
                 if not content.endswith("\n"):
                     need_newline = True
     except IOError:
-        print(f"\033[91mUnknown Error on \033[0m{
-              file}, \033[91mPlease check your output file\033[0m")
+        print(f"\033[91mUnknown Error on \033[0m{file}, \033[91mPlease check your output file\033[0m")
         return False
 
     with open(file, "a+", encoding="utf-8") as f:
@@ -129,12 +130,10 @@ def _compile_to_ir(src_file: str, target_file: str, opt_level: int, test_name: s
         SYSY, src_file, "-llvm", "-o", target_file, f"-O{opt_level}"
     ], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False)
     if res.returncode == 124:
-        print_test_status(
-            test_name, "\033[93mCompile Time Limit Exceed\033[0m", final=True)
+        print_test_status(test_name, "\033[93mCompile Time Limit Exceed\033[0m", final=True)
         return False
     if res.returncode != 0:
-        print_test_status(
-            test_name, "\033[93mCompiler Error\033[0m", final=True)
+        print_test_status(test_name, "\033[93mCompiler Error\033[0m", final=True)
         return False
     return True
 
@@ -146,8 +145,7 @@ def _check_ir_syntax(target_file: str, src_file: str, test_name: str):
         ["llvm-as", target_file, "-o", "/dev/null"],
         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False)
     if res.returncode != 0:
-        print_test_status(
-            test_name, "\033[93mLLVM-IR Syntax Error\033[0m", final=True)
+        print_test_status(test_name, "\033[93mLLVM-IR Syntax Error\033[0m", final=True)
         return False
     return True
 
@@ -166,8 +164,7 @@ def _compile_ir_and_link(target_file: str, src_file: str, test_name: str):
     res = subprocess.run([
         "clang", "tmp.o", "-o", "tmp.bin", "-static", "-L./lib", "-lsysy_x86"
     ], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False)
-    subprocess.run(["rm", "tmp.o"], stdout=subprocess.DEVNULL,
-                   stderr=subprocess.DEVNULL, check=False)
+    subprocess.run(["rm", "tmp.o"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False)
     if res.returncode != 0:
         print_test_status(test_name, "\033[93mLink Error\033[0m", final=True)
         return False
@@ -198,29 +195,23 @@ def _run_ir_and_check(test_cfg: TestConfig, test_name: str):
         print_test_status(test_name, "\033[91mIO Error\033[0m", final=True)
         return False
     finally:
-        subprocess.run(["rm", "-f", "tmp.bin"], stdout=subprocess.DEVNULL,
-                       stderr=subprocess.DEVNULL, check=False)
+        subprocess.run(["rm", "-f", "tmp.bin"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False)
 
     if res is None:
         return False
 
     if res.returncode == 124:
-        print_test_status(
-            test_name, "\033[93mExecute Time Limit Exceed\033[0m", final=True)
-        subprocess.run(["rm", test_cfg.act_output], stdout=subprocess.DEVNULL,
-                       stderr=subprocess.DEVNULL, check=False)
+        print_test_status(test_name, "\033[93mExecute Time Limit Exceed\033[0m", final=True)
+        subprocess.run(["rm", test_cfg.act_output], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False)
         return False
     if res.returncode == 139:
-        subprocess.run(["rm", test_cfg.act_output], stdout=subprocess.DEVNULL,
-                       stderr=subprocess.DEVNULL, check=False)
-        print_test_status(
-            test_name, "\033[93mRuntime Error (Segmentation Fault)\033[0m", final=True)
+        subprocess.run(["rm", test_cfg.act_output], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False)
+        print_test_status(test_name, "\033[93mRuntime Error (Segmentation Fault)\033[0m", final=True)
         return False
 
     add_returncode(test_cfg.act_output, res.returncode)
     check = check_file(test_cfg.act_output, test_cfg.std_output)
-    subprocess.run(["rm", test_cfg.act_output], stdout=subprocess.DEVNULL,
-                   stderr=subprocess.DEVNULL, check=False)
+    subprocess.run(["rm", test_cfg.act_output], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False)
     if check != 0:
         print_test_status(test_name, "\033[91mWrong Answer\033[0m", final=True)
         return False
@@ -231,16 +222,14 @@ def _compile_to_asm(src_file: str, target_file: str, opt_level: int, test_name: 
     """Compiles the input SysY file to RISC-V assembly."""
     print_test_status(test_name, "Compiling sy to asm")
     res = subprocess.run([
-        "timeout", IR_TIMEOUT,
+        "timeout", ASM_TIMEOUT,
         SYSY, src_file, "-S", "-o", target_file, f"-O{opt_level}"
     ], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False)
     if res.returncode == 124:
-        print_test_status(
-            test_name, "\033[93mCompile Time Limit Exceed\033[0m", final=True)
+        print_test_status(test_name, "\033[93mCompile Time Limit Exceed\033[0m", final=True)
         return False
     if res.returncode != 0:
-        print_test_status(
-            test_name, "\033[93mCompiler Error\033[0m", final=True)
+        print_test_status(test_name, "\033[93mCompiler Error\033[0m", final=True)
         return False
     return True
 
@@ -248,15 +237,14 @@ def _compile_to_asm(src_file: str, target_file: str, opt_level: int, test_name: 
 def _compile_asm_and_link_riscv(target_file: str, src_file: str, test_name: str):
     """Compiles RISC-V assembly to object file and links it into an executable."""
     global RISCV_GCC, TEXT_ADDR
-
+    
     print_test_status(test_name, "Compiling asm to object")
     # Compile .s to .o
     res = subprocess.run(
         [RISCV_GCC, target_file, "-c", "-o", "tmp.o", "-w"],
         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False)
     if res.returncode != 0:
-        print_test_status(
-            test_name, "\033[93mAssembly Error\033[0m", final=True)
+        print_test_status(test_name, "\033[93mAssembly Error\033[0m", final=True)
         return False
 
     print_test_status(test_name, "Linking object to exec")
@@ -267,8 +255,7 @@ def _compile_asm_and_link_riscv(target_file: str, src_file: str, test_name: str)
         "-static", "-mcmodel=medany",
         f"-Wl,--no-relax,-Ttext={TEXT_ADDR}"
     ], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False)
-    subprocess.run(["rm", "tmp.o"], stdout=subprocess.DEVNULL,
-                   stderr=subprocess.DEVNULL, check=False)
+    subprocess.run(["rm", "tmp.o"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False)
     if res.returncode != 0:
         print_test_status(test_name, "\033[93mLink Error\033[0m", final=True)
         return False
@@ -299,29 +286,111 @@ def _run_riscv_and_check(test_cfg: TestConfig, test_name: str):
         print_test_status(test_name, "\033[91mIO Error\033[0m", final=True)
         return False
     finally:
-        subprocess.run(["rm", "-f", "tmp.bin"], stdout=subprocess.DEVNULL,
-                       stderr=subprocess.DEVNULL, check=False)
+        subprocess.run(["rm", "-f", "tmp.bin"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False)
 
     if res is None:
         return False
 
     if res.returncode == 124:
-        print_test_status(
-            test_name, "\033[93mExecute Time Limit Exceed\033[0m", final=True)
-        subprocess.run(["rm", test_cfg.act_output], stdout=subprocess.DEVNULL,
-                       stderr=subprocess.DEVNULL, check=False)
+        print_test_status(test_name, "\033[93mExecute Time Limit Exceed\033[0m", final=True)
+        subprocess.run(["rm", test_cfg.act_output], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False)
         return False
     if res.returncode == 139:
-        subprocess.run(["rm", test_cfg.act_output], stdout=subprocess.DEVNULL,
-                       stderr=subprocess.DEVNULL, check=False)
-        print_test_status(
-            test_name, "\033[93mRuntime Error (Segmentation Fault)\033[0m", final=True)
+        subprocess.run(["rm", test_cfg.act_output], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False)
+        print_test_status(test_name, "\033[93mRuntime Error (Segmentation Fault)\033[0m", final=True)
         return False
 
     add_returncode(test_cfg.act_output, res.returncode)
     check = check_file(test_cfg.act_output, test_cfg.std_output)
-    subprocess.run(["rm", test_cfg.act_output], stdout=subprocess.DEVNULL,
-                   stderr=subprocess.DEVNULL, check=False)
+    subprocess.run(["rm", test_cfg.act_output], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False)
+    if check != 0:
+        print_test_status(test_name, "\033[91mWrong Answer\033[0m", final=True)
+        return False
+    return True
+
+
+def _compile_to_asm_arm(src_file: str, target_file: str, opt_level: int, test_name: str):
+    """Compiles the input SysY file to AArch64 assembly."""
+    print_test_status(test_name, "Compiling sy to asm")
+    res = subprocess.run([
+        "timeout", ASM_TIMEOUT,
+        SYSY, src_file, "-S", "-o", target_file, f"-O{opt_level}",
+        "-march", "aarch64"
+    ], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False)
+    if res.returncode == 124:
+        print_test_status(test_name, "\033[93mCompile Time Limit Exceed\033[0m", final=True)
+        return False
+    if res.returncode != 0:
+        print_test_status(test_name, "\033[93mCompiler Error\033[0m", final=True)
+        return False
+    return True
+
+
+def _compile_asm_and_link_arm(target_file: str, src_file: str, test_name: str):
+    """Compiles AArch64 assembly to object file and links it into an executable."""
+    print_test_status(test_name, "Compiling asm to object")
+    # Compile .s to .o
+    res = subprocess.run(
+        ["aarch64-linux-gnu-gcc", target_file, "-c", "-o", "tmp.o", "-w"],
+        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False)
+    if res.returncode != 0:
+        print_test_status(test_name, "\033[93mAssembly Error\033[0m", final=True)
+        return False
+
+    print_test_status(test_name, "Linking object to exec")
+    # Link .o to executable
+    res = subprocess.run([
+        "aarch64-linux-gnu-gcc", "tmp.o", "-o", "tmp.bin",
+        "-L./lib", "-lsysy_aarch", "-static"
+    ], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False)
+    subprocess.run(["rm", "tmp.o"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False)
+    if res.returncode != 0:
+        print_test_status(test_name, "\033[93mLink Error\033[0m", final=True)
+        return False
+    return True
+
+
+def _run_arm_and_check(test_cfg: TestConfig, test_name: str):
+    """Runs the AArch64 executable with qemu and checks its output."""
+    print_test_status(test_name, "Executing")
+    res = None
+    try:
+        with ExitStack() as stack:
+            stdout_file = stack.enter_context(
+                open(test_cfg.act_output, "w", encoding="utf-8"))
+            stdin_file = None
+            if test_cfg.std_input:
+                stdin_file = stack.enter_context(
+                    open(test_cfg.std_input, "r", encoding="utf-8"))
+
+            res = subprocess.run(
+                ["timeout", ASM_TIMEOUT, "qemu-aarch64", "./tmp.bin"],
+                stdin=stdin_file,
+                stdout=stdout_file,
+                stderr=subprocess.DEVNULL,
+                check=False
+            )
+    except IOError:
+        print_test_status(test_name, "\033[91mIO Error\033[0m", final=True)
+        return False
+    finally:
+        subprocess.run(["rm", "-f", "tmp.bin"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False)
+
+    if res is None:
+        return False
+
+    if res.returncode == 124:
+        print_test_status(test_name, "\033[93mExecute Time Limit Exceed\033[0m", final=True)
+        subprocess.run(["rm", test_cfg.act_output], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False)
+        return False
+    if res.returncode in [139, -11]: # segfault
+        subprocess.run(["rm", test_cfg.act_output], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False)
+        print_test_status(test_name, "\033[93mRuntime Error (Segmentation Fault)\033[0m", final=True)
+        return False
+
+    add_returncode(test_cfg.act_output, res.returncode)
+    check = check_file(test_cfg.act_output, test_cfg.std_output)
+    subprocess.run(["rm", test_cfg.act_output], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False)
     if check != 0:
         print_test_status(test_name, "\033[91mWrong Answer\033[0m", final=True)
         return False
@@ -332,7 +401,7 @@ def _execute_ir(test_cfg: TestConfig):
     """Full pipeline to compile, run, and check a SysY file via LLVM IR."""
     # Print test case name at the beginning
     test_name = os.path.basename(test_cfg.input_file)
-
+    
     if not _compile_to_ir(test_cfg.input_file, test_cfg.output_file, test_cfg.opt_level, test_name):
         return False
 
@@ -352,7 +421,7 @@ def _execute_ir(test_cfg: TestConfig):
 def _execute_riscv(test_cfg: TestConfig):
     """Full pipeline to compile, run, and check a SysY file via RISC-V assembly."""
     test_name = os.path.basename(test_cfg.input_file)
-
+    
     if not _compile_to_asm(test_cfg.input_file, test_cfg.output_file, test_cfg.opt_level, test_name):
         return False
 
@@ -366,10 +435,27 @@ def _execute_riscv(test_cfg: TestConfig):
     return True
 
 
+def _execute_arm(test_cfg: TestConfig):
+    """Full pipeline to compile, run, and check a SysY file via AArch64 assembly."""
+    test_name = os.path.basename(test_cfg.input_file)
+    
+    if not _compile_to_asm_arm(test_cfg.input_file, test_cfg.output_file, test_cfg.opt_level, test_name):
+        return False
+
+    if not _compile_asm_and_link_arm(test_cfg.output_file, test_cfg.input_file, test_name):
+        return False
+
+    if not _run_arm_and_check(test_cfg, test_name):
+        return False
+
+    print_test_status(test_name, "\033[92mAccepted\033[0m", final=True)
+    return True
+
+
 def main():
     """Main function to parse arguments and run tests."""
     load_toolchains_config()
-
+    
     parser = argparse.ArgumentParser(
         description="SysY Compiler Testing Script")
     parser.add_argument("--group", default="Basic", choices=["Basic", "Advanced"],
@@ -397,6 +483,7 @@ def main():
     exec_funcs = {
         "llvm": _execute_ir,
         "riscv": _execute_riscv,
+        "arm": _execute_arm,
     }
 
     exec_func = exec_funcs[args.stage]

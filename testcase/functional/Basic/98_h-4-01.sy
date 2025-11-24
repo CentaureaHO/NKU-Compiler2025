@@ -30,7 +30,7 @@ while (x < t) {
 
 int main(){
     int T = getint();
-
+    starttime();
     while(T){
         int s = getint();
         int t = getint();
@@ -39,6 +39,6 @@ int main(){
         putch(10);
         T = T-1;
     }
-
+    stoptime();
     return 0;
 }

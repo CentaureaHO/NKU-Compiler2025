@@ -282,6 +282,7 @@ int main()
 
         if (list_id < 0 || list_id >= MAX_LISTS)
         {
+            // Error
             putch(69);
             putch(114);
             putch(114);
@@ -309,6 +310,7 @@ int main()
             value = getint();
             if (search(list_id, value))
             {
+                // Yes
                 putch(89);
                 putch(101);
                 putch(115);
@@ -316,6 +318,7 @@ int main()
             }
             else
             {
+                // No
                 putch(78);
                 putch(111);
                 putch(10);
@@ -326,6 +329,7 @@ int main()
             value = getint();
             if (delete_node(list_id, value))
             {
+                // Success
                 putch(83);
                 putch(117);
                 putch(99);
@@ -337,6 +341,7 @@ int main()
             }
             else
             {
+                // Failed
                 putch(70);
                 putch(97);
                 putch(105);
@@ -351,6 +356,7 @@ int main()
             value = getint();
             if (value < 0 || value >= MAX_LISTS)
             {
+                // Error
                 putch(69);
                 putch(114);
                 putch(114);

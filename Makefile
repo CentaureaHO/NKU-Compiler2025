@@ -8,9 +8,13 @@ INCLUDES = $(addprefix -I, $(INC_DIR))
 CXX_STANDARD = -std=c++17
 DBGFLAGS = -g
 WERROR_FLAGS := -Wall -Wextra -Wpedantic -Werror
-WARN_IGNORE := 
+WARN_IGNORE := -Wno-unused-parameter
 CUSTOM_FLAGS := -DLOCAL_TEST
 CXXFLAGS = -O2 -MMD -MP $(CXX_STANDARD) $(INCLUDES) $(WERROR_FLAGS) $(DBGFLAGS) $(WARN_IGNORE) $(CUSTOM_FLAGS)
+
+-include toolchains.conf
+RISCV_GCC ?= riscv64-unknown-elf-gcc
+RISCV_AR  ?= riscv64-unknown-elf-ar
 
 SOURCES = $(shell find $(SRC_DIR) -name "*.cpp" -type f)
 MAIN_SRC = main.cpp
@@ -82,4 +86,14 @@ lexer: $(LEXER_FILES)
 format:
 	@find . -type f \( -name "*.c" -o -name "*.cpp" -o -name "*.h" -o -name "*.hpp" -o -name "*.hh" \) -exec clang-format -i {} +
 
-.PHONY: all clean clean-lexer lexer format
+.PHONY: all clean clean-lexer lexer format libarm librv
+
+libarm:
+	@aarch64-linux-gnu-gcc lib/sylib.c -c -o libtmp.o -Ilib
+	@aarch64-linux-gnu-ar rcs lib/libsysy_aarch.a libtmp.o
+	@rm libtmp.o
+
+librv:
+	@$(RISCV_GCC) lib/sylib.c -c -o libtmp.o -Ilib -mcmodel=medany
+	@$(RISCV_AR) rcs lib/libsysy_riscv.a libtmp.o
+	@rm libtmp.o

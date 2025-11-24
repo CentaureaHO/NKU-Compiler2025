@@ -21,7 +21,7 @@ int main(){
     int i = 0;
     int n = getint();
     seed = getint();
-
+    starttime();
     while(i < n){
         if(i % 2 == 0){
             sum = sum - fib(rand() / 10007  , i, sum) % 256;
@@ -33,6 +33,6 @@ int main(){
         putch(10);
         i = i + 1;
     }
-
+    stoptime();
     return 0;
 }

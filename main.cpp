@@ -1,10 +1,6 @@
 #include <frontend/parser/parser.h>
 #include <frontend/ast/ast.h>
 #include <frontend/ast/visitor/printer/ast_printer.h>
-#include <fstream>
-#include <iostream>
-#include <iomanip>
-
 #include <frontend/symbol/symbol_table.h>
 #include <frontend/ast/visitor/sementic_check/ast_checker.h>
 
@@ -12,6 +8,14 @@
 #include <middleend/visitor/printer/module_printer.h>
 #include <middleend/module/ir_module.h>
 #include <middleend/pass/unify_return.h>
+
+#include <backend/mir/m_module.h>
+#include <backend/target/registry.h>
+#include <backend/target/target.h>
+
+#include <fstream>
+#include <iostream>
+#include <iomanip>
 
 /* 如果你简化了框架的实现, 或者解决了框架现存的问题
    或者是用现代C++特性对框架进行了重构, 并且有效地简化了代码或者提高了代码的复用性
@@ -44,8 +48,9 @@ string truncateString(const string& str, size_t width)
 int main(int argc, char** argv)
 {
     string   inputFile     = "";
-    string   outputFile    = "a.out";
+    string   outputFile    = "";
     string   step          = "-llvm";
+    string   march         = "riscv64";
     int      optimizeLevel = 0;
     ostream* outStream     = &cout;
     ofstream outFile;
@@ -62,6 +67,16 @@ int main(int argc, char** argv)
             else
             {
                 cerr << "Error: -o option requires a filename" << endl;
+                return 1;
+            }
+        }
+        else if (arg == "-march")
+        {
+            if (i + 1 < argc)
+                march = argv[++i];
+            else
+            {
+                cerr << "Error: -march option requires a target (e.g., riscv64)" << endl;
                 return 1;
             }
         }
@@ -317,13 +332,27 @@ int main(int argc, char** argv)
             // 这一部分的打印有完整实现提供，如果你未对 IR 结构有改动，可以直接使用
             ME::IRPrinter printer;
             printer.visit(m, *outStream);
+            ret = 0;
+            goto cleanup_ast;
         }
-        else if (step == "-S")
+
+        if (step != "-S")
         {
-            // 由于 ARMV8 的后端尚未完成，此处暂时留空
-            // 后续更新实验框架时会在飞书群内通知
-            TODO("Lab5: Impl ARMV8 Pipeline");
+            cerr << "Unknown step: " << step << endl;
+            ret = 1;
+            goto cleanup_ast;
         }
+
+        BE::Module backendModule;
+        auto*      tgt = BE::Targeting::TargetRegistry::getTarget(march);
+        if (!tgt)
+        {
+            cerr << "Unknown target: " << march << endl;
+            ret = 1;
+            goto cleanup_ast;
+        }
+
+        tgt->runPipeline(&m, &backendModule, outStream);
 
         ret = 0;
     }

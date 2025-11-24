@@ -7,9 +7,23 @@ int sum(int a[], int n)
     while (i < n)
     {
         sum = sum + a[i];
-        i = i + 1;
+        i   = i + 1;
     }
     return sum;
+}
+
+int max(int a[10], int n)
+{
+    int i;
+    int max = a[0];
+
+    i = 1;
+    while (i < n)
+    {
+        if (a[i] > max) max = a[i];
+        i = i + 1;
+    }
+    return max;
 }
 
 int main()
@@ -23,12 +37,13 @@ int main()
         while (j < 10)
         {
             arr[i][j] = i + j;
-            j = j + 1;
+            j         = j + 1;
         }
         i = i + 1;
     }
 
-    return sum(arr, 100);   // 虽然 C语言标准中不允许这样，但考虑到 SysY 的测试用例中出现过这样的测试点
-                            // 所以这里我们认为这是合法的
-                            // 该实验框架中实质将它们都视为 int*，不考虑维度
+    // 虽然 C语言标准中不允许维度不匹配的数组传参，但考虑到 SysY 的测试用例中出现过这样的测试点
+    // 所以这里我们认为这是合法的
+    // 该实验框架中实质将它们都视为 int*，不考虑维度
+    return sum(arr, 100) + max(arr[0], 10);
 }
