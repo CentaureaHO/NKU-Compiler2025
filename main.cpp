@@ -343,6 +343,31 @@ int main(int argc, char** argv)
             goto cleanup_ast;
         }
 
+        /*
+         * Lab 5: 后端代码生成
+         *
+         * 从这里开始进入后端。请先阅读 `backend/README.md` 了解后端目录结构、流水线与各阶段职责
+         * （指令选择 → 帧降低 → 寄存器分配 → 栈降低）。
+         *
+         * 后端的“主流程入口”不在此文件，而在各目标架构的 Target 类：
+         * - AArch64: `backend/targets/aarch64/aarch64_target.cpp` 的 `AArch64Target::runPipeline`
+         * - RISC-V:  `backend/targets/riscv64/rv64_target.cpp` 的 `RV64::Target::runPipeline`
+         * main 中通过 `BE::Targeting::TargetRegistry::getTarget(march)` 获取具体后端实例，
+         * 然后调用 `target->runPipeline(&m, &backendModule, outStream)` 串起后续步骤。
+         *
+         * 关于 `BE::Targeting::TargetRegistry`：
+         * - 作用：维护“目标字符串 → Target 工厂/实例”的全局注册表，作为后端选择与复用的入口。
+         * - 注册：各架构在其 target 源文件内通过静态构造注册工厂函数，例如：
+         *   AArch64 在 `aarch64_target.cpp` 中注册 "aarch64"/"armv8"；
+         *   RISC‑V 在 `rv64_target.cpp` 中注册 "riscv64"/"riscv"/"rv64"。
+         * - 获取：使用命令行 `-march` 的字符串（默认 "riscv64"）调用 `getTarget(march)`：
+         *     `auto* tgt = BE::Targeting::TargetRegistry::getTarget(march);`
+         *   若已创建过则返回缓存实例，否则通过对应工厂创建并缓存；找不到则返回 `nullptr`。
+         *
+         * 主要任务：
+         * - 选择并完成你的指令选择（DAG ISel 或直接 IR→MIR），产出包含 FrameIndex 等抽象的 MIR；
+         * - 在 AArch64/RV64 的 `runPipeline` 内按 README.md 给出的顺序串起各 Pass；
+         */
         BE::Module backendModule;
         auto*      tgt = BE::Targeting::TargetRegistry::getTarget(march);
         if (!tgt)
