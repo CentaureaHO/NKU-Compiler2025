@@ -367,6 +367,20 @@ int main(int argc, char** argv)
          * 主要任务：
          * - 选择并完成你的指令选择（DAG ISel 或直接 IR→MIR），产出包含 FrameIndex 等抽象的 MIR；
          * - 在 AArch64/RV64 的 `runPipeline` 内按 README.md 给出的顺序串起各 Pass；
+         * 
+         * 补充说明：
+         * - 项目根目录下提供了 arm2bin.sh 和 rv2bin.sh 脚本，可以用于将 AArch64 和 RISC-V 的汇编代码转换为二进制文件。
+         *     默认输入为 `test.s`，输出为 `test.bin`，可通过命令行参数修改。
+         * - 关于后端调试，请同学们善用 gdb 工具。arm2bin.sh 和 rv2bin.sh 脚本中已经添加了 -g 选项，可以生成调试信息。
+         *     随后，你可以使用 gdb-multiarch 工具来调试 AArch64 和 RISC-V 的程序。具体启动示例如下：
+         *     ```bash
+         *     qemu-riscv64 -g {port} {exec} &      // {port} 为调试端口，{exec} 为可执行文件，& 表示后台运行
+         *                                          // 如 `qemu-riscv64 -g 1234 test.bin &`
+         *                                          // 当然不加 & 也可以，新开一个终端运行 gdb 就行
+         *     gdb-multiarch {exec}
+         *     (gdb) target remote:{port}
+         *     ```
+         *     gdb 的使用相信大家在 OS 课上已经有所了解，这里就略过。
          */
         BE::Module backendModule;
         auto*      tgt = BE::Targeting::TargetRegistry::getTarget(march);
